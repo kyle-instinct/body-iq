@@ -65,3 +65,20 @@ Ordered by Jev review probability, lowest first. `finding` is Jev's read of the 
 Reproduce: `pnpm research:intake -- --targets goals` (stage 1 + payloads), then
 `--run` with `TYPESAFE_API_KEY` and `TYPESAFE_API_URL` set, or `--answers
 <jsonl>` to gate answers collected elsewhere.
+
+## Multi-engine intake (PubMed + Europe PMC + OpenAlex)
+
+`pnpm research:intake -- --targets goals --engines pubmed,europepmc,openalex`
+
+- 125 candidates for 13 rehab goals: PubMed 65, Europe PMC 45, OpenAlex 15.
+  60 were found only outside the PubMed search. 5 already in corpus, 120 new.
+- Jev vetted the 59 not already vetted (69,797 tokens, $0.002931). Across all
+  120: 52 direct, 66 indirect, 2 off-topic. Jev matched the design label on 90.8%.
+- Strict gate: 0 proposed (same review-probability pattern). Shortlist grows
+  from 18 to 29 across 12 goals. All 29 were corroborated by the cross-check.
+- The 11 new shortlist articles came from Europe PMC or OpenAlex. They include
+  the first hamstring-strain candidate (PMID 40954668) and a neck-pain RCT
+  (PMID 42711358). **They are not approved or attached.** Only the original 18
+  are in the `goal-evidence` seed extension.
+- OpenAlex has no publication types, so its design label comes from the title.
+  Jev must agree with that label before an OpenAlex hit can pass the gate.

@@ -2,6 +2,14 @@
 
 Append-only. `grep "^## \[" wiki/log.md | tail -10` for recent activity.
 
+## [2026-09-22] change | Identifier fix proposals + multi-engine intake
+`scripts/identifier-fix-proposals.ts` searches each conflicting corpus source's
+stored title in PubMed, Europe PMC, and OpenAlex. Of 19 flagged sources: 10
+strong proposals, 5 possible, 1 already correct, 3 with no match. Report only
+(docs/identifier-fix-proposals-2026-09-22.md). Intake gained `--engines
+pubmed,europepmc,openalex`: 125 goal candidates (60 found only outside the
+PubMed search), shortlist 18 -> 29, all corroborated. The 11 new ones are not attached.
+
 ## [2026-09-22] change | Goal evidence attached, cross-source verification, Jev audits 3-5
 Kyle approved the 18-article intake shortlist and menu items 3-5. Added
 `scripts/source-crosscheck.ts` (PubMed, Europe PMC, OpenAlex, Crossref,

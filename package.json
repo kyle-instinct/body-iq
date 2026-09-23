@@ -32,7 +32,8 @@
     "evidence:validate": "tsx scripts/evidence-validation.ts",
     "research:intake": "tsx scripts/research-intake.ts",
     "jev:audit": "tsx scripts/jev-audits.ts",
-    "sources:crosscheck": "tsx scripts/source-crosscheck.ts"
+    "sources:crosscheck": "tsx scripts/source-crosscheck.ts",
+    "sources:fix-proposals": "tsx scripts/identifier-fix-proposals.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

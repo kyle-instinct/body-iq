@@ -40,7 +40,8 @@
  *   source ~/.jev.env && pnpm research:intake -- --targets goals --run
  *   pnpm research:intake -- --targets goals --answers <answers.jsonl>   # gate pre-computed Jev answers
  *
- * Flags: --input <dataset.json> --targets goals|exercises|all --goal <slug>
+ * Flags: --engines pubmed,europepmc,openalex (default pubmed)
+ *        --input <dataset.json> --targets goals|exercises|all --goal <slug>
  *        --per-target N (default 5) --years N (default 10) --limit N
  *        --only-weak (exercise targets: skip records with 2+ identifiable sources)
  *        --out <dir> (default exports/research-intake)
@@ -60,6 +61,7 @@ const PER_TARGET = Number(arg("--per-target") ?? 5);
 const YEARS = Number(arg("--years") ?? 10);
 const LIMIT = Number(arg("--limit") ?? 0);
 const ONLY_WEAK = process.argv.includes("--only-weak");
+const ENGINES = (arg("--engines") ?? "pubmed").split(",");
 const RUN = process.argv.includes("--run");
 const ANSWERS = arg("--answers");
 const OUT = arg("--out") ?? "exports/research-intake";
@@ -77,13 +79,13 @@ type DS = {
   sourceLinks: { entityType: string; exerciseId?: string | null; sourceId: string }[];
   exerciseGoals: { exerciseId: string; goalId: string }[];
 };
-type Target = { kind: "rehab-goal" | "exercise"; slug: string; name: string; claim: string; query: string; linkedExercises?: string[] };
+type Target = { kind: "rehab-goal" | "exercise"; slug: string; name: string; claim: string; query: string; terms: string[]; linkedExercises?: string[] };
 type Design = "systematic-review-or-meta-analysis" | "guideline" | "rct" | "observational" | "other";
 type Candidate = {
   target: string; targetKind: Target["kind"]; targetName: string; claim: string;
   pmid: string; doi: string | null; title: string; journal: string; year: number | null;
   firstAuthor: string | null; publicationTypes: string[]; pubmedDesign: Design;
-  summary: string; abstract: string; inCorpus: boolean;
+  summary: string; abstract: string; inCorpus: boolean; foundBy?: string[];
 };
 type Answer = {
   key: string; ok: boolean; relevance?: string; relevanceConfidence?: number; design?: string;
@@ -118,6 +120,7 @@ function targets(ds: DS): Target[] {
       out.push({
         kind: "rehab-goal", slug: g.slug, name: g.name,
         claim: g.description ?? `Exercise-based education for ${g.name}`,
+        terms,
         query: `${tiab(terms)} AND (exercise[tiab] OR "exercise therapy"[mh] OR rehabilitation[tiab]) AND ${DESIGN_FILTER}`,
         linkedExercises: ds.exerciseGoals.filter(l => l.goalId === g.id).map(l => exById.get(l.exerciseId)?.name).filter(Boolean) as string[],
       });
@@ -135,7 +138,7 @@ function targets(ds: DS): Target[] {
       if (ONLY_WEAK && (identified.get(e.id) ?? 0) >= 2) continue;
       const name = e.name.replace(/\([^)]*\)/g, "").trim();
       out.push({
-        kind: "exercise", slug: e.slug, name: e.name, claim: e.description,
+        kind: "exercise", slug: e.slug, name: e.name, claim: e.description, terms: [name],
         query: `"${name}"[tiab] AND (exercise[tiab] OR electromyography[mh] OR electromyography[tiab] OR training[tiab])`,
       });
     }
@@ -184,20 +187,67 @@ function parseArticles(xml: string): Omit<Candidate, "target" | "targetKind" | "
   }).filter(c => c.pmid && c.title);
 }
 
+type Art = ReturnType<typeof parseArticles>[number];
+function designFromTitle(t: string): Design {
+  if (/systematic review|meta-analy|umbrella review|cochrane/i.test(t)) return "systematic-review-or-meta-analysis";
+  if (/guideline|consensus|recommendation/i.test(t)) return "guideline";
+  if (/randomi[sz]ed/i.test(t)) return "rct";
+  return "other";
+}
+async function europePmc(t: Target, fromYear: number): Promise<Art[]> {
+  const kind = t.kind === "rehab-goal" ? ` AND (exercise OR rehabilitation) AND (PUB_TYPE:"Systematic Review" OR PUB_TYPE:"Meta-Analysis" OR PUB_TYPE:"Randomized Controlled Trial" OR PUB_TYPE:"Practice Guideline")` : ` AND (exercise OR electromyography OR training)`;
+  const q = `(${t.terms.map(x => `TITLE_ABS:"${x}"`).join(" OR ")})${kind} AND PUB_YEAR:[${fromYear} TO 3000]`;
+  const r = await fetch(`https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(q)}&format=json&resultType=core&pageSize=${PER_TARGET}`, { headers: { "user-agent": UA } });
+  if (!r.ok) return [];
+  const j: any = await r.json();
+  return (j.resultList?.result ?? []).filter((x: any) => x.pmid && x.title).map((x: any) => {
+    const types: string[] = x.pubTypeList?.pubType ?? []; const abstract = decode(x.abstractText ?? "");
+    const concl = abstract.match(/CONCLUSIONS?:?\s*(.*)$/i)?.[1] ?? abstract.split(/(?<=\.)\s+(?=[A-Z])/).slice(-2).join(" ");
+    return { pmid: x.pmid, doi: x.doi ?? null, title: decode(x.title), journal: x.journalInfo?.journal?.isoabbreviation ?? x.journalInfo?.journal?.title ?? "", year: Number(x.pubYear) || null,
+      firstAuthor: (x.authorString ?? "").split(" ")[0] || null, publicationTypes: types, pubmedDesign: designFromTypes(types), summary: concl.slice(0, 600), abstract };
+  });
+}
+async function openAlex(t: Target, fromYear: number): Promise<Art[]> {
+  const q = `${t.terms[0]} exercise${t.kind === "rehab-goal" ? " rehabilitation" : ""}`;
+  const r = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(q)}&filter=from_publication_date:${fromYear}-01-01,has_pmid:true&per-page=${PER_TARGET}&select=doi,title,publication_year,ids,authorships,primary_location,abstract_inverted_index&mailto=bodyiq@example.com`, { headers: { "user-agent": UA } });
+  if (!r.ok) return [];
+  const j: any = await r.json();
+  return (j.results ?? []).map((w: any) => {
+    const inv = w.abstract_inverted_index ?? {}; const pos: string[] = [];
+    for (const [word, idx] of Object.entries(inv)) for (const i of idx as number[]) pos[i] = word;
+    const abstract = pos.filter(Boolean).join(" ");
+    return { pmid: (w.ids?.pmid ?? "").split("/").pop(), doi: (w.doi ?? "").replace("https://doi.org/", "") || null, title: decode(w.title ?? ""),
+      journal: w.primary_location?.source?.display_name ?? "", year: w.publication_year ?? null, firstAuthor: w.authorships?.[0]?.author?.display_name?.split(" ").pop() ?? null,
+      publicationTypes: [], pubmedDesign: designFromTitle(w.title ?? ""), summary: abstract.split(/(?<=\.)\s+(?=[A-Z])/).slice(-2).join(" ").slice(0, 600), abstract };
+  }).filter((a: Art) => a.pmid && a.title);
+}
+
 async function stage1(ds: DS, ts: Target[]): Promise<{ candidates: Candidate[]; zeroHit: string[] }> {
   const corpusPmid = new Set(ds.sources.map(s => s.pmid).filter(Boolean) as string[]);
   const corpusDoi = new Set(ds.sources.map(s => s.doi?.toLowerCase()).filter(Boolean) as string[]);
   const candidates: Candidate[] = []; const zeroHit: string[] = [];
+  const fromYear = new Date().getUTCFullYear() - YEARS;
   for (const t of ts) {
-    const term = encodeURIComponent(`(${t.query}) AND ("${new Date().getUTCFullYear() - YEARS}"[dp] : "3000"[dp])`);
-    const search = JSON.parse(await ncbi(`esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${PER_TARGET}&term=${term}`));
-    const ids: string[] = search.esearchresult?.idlist ?? [];
-    if (!ids.length) { zeroHit.push(t.slug); continue; }
-    const xml = await ncbi(`efetch.fcgi?db=pubmed&retmode=xml&id=${ids.join(",")}`);
-    for (const a of parseArticles(xml)) {
-      candidates.push({ target: t.slug, targetKind: t.kind, targetName: t.name, claim: t.claim, ...a,
+    const found = new Map<string, Candidate>();
+    const add = (a: Art, engine: string) => {
+      const prev = found.get(a.pmid);
+      if (prev) { prev.foundBy = [...new Set([...(prev.foundBy ?? []), engine])]; return; }
+      found.set(a.pmid, { target: t.slug, targetKind: t.kind, targetName: t.name, claim: t.claim, ...a, foundBy: [engine],
         inCorpus: corpusPmid.has(a.pmid) || (!!a.doi && corpusDoi.has(a.doi.toLowerCase())) });
+    };
+    if (ENGINES.includes("pubmed")) {
+      const term = encodeURIComponent(`(${t.query}) AND ("${fromYear}"[dp] : "3000"[dp])`);
+      const search = JSON.parse(await ncbi(`esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${PER_TARGET}&term=${term}`));
+      const ids: string[] = search.esearchresult?.idlist ?? [];
+      if (ids.length) for (const a of parseArticles(await ncbi(`efetch.fcgi?db=pubmed&retmode=xml&id=${ids.join(",")}`))) add(a, "pubmed");
     }
+    // Europe PMC and OpenAlex widen discovery. Their hits keep PubMed's PMID as the
+    // join key; OpenAlex design comes from the title only, so the design gate
+    // (Jev must agree) stays strict for those.
+    if (ENGINES.includes("europepmc")) for (const a of await europePmc(t, fromYear)) add(a, "europepmc");
+    if (ENGINES.includes("openalex")) for (const a of await openAlex(t, fromYear)) add(a, "openalex");
+    if (!found.size) zeroHit.push(t.slug);
+    candidates.push(...found.values());
     process.stdout.write(".");
   }
   process.stdout.write("\n");
@@ -291,7 +341,7 @@ async function main() {
   const ds: DS = JSON.parse(readFileSync(INPUT, "utf8"));
   const ts = targets(ds);
   mkdirSync(OUT, { recursive: true });
-  const cachePath = join(OUT, `candidates-${TARGETS}${ONLY_GOAL ? "-" + ONLY_GOAL : ""}.json`);
+  const cachePath = join(OUT, `candidates-${TARGETS}${ONLY_GOAL ? "-" + ONLY_GOAL : ""}${ENGINES.join("+") === "pubmed" ? "" : "-" + ENGINES.join("+")}.json`);
   let stage: { candidates: Candidate[]; zeroHit: string[] };
   if (existsSync(cachePath) && !process.argv.includes("--refresh")) stage = JSON.parse(readFileSync(cachePath, "utf8"));
   else { stage = await stage1(ds, ts); writeFileSync(cachePath, JSON.stringify(stage, null, 2)); }
@@ -343,6 +393,7 @@ async function main() {
   const count = (xs: (string | undefined)[]) => xs.reduce<Record<string, number>>((m, x) => (m[x ?? "none"] = (m[x ?? "none"] ?? 0) + 1, m), {});
   const report = {
     generatedAt: new Date().toISOString(), apiHost: new URL(API_URL).host, targets: ts.length, zeroHitTargets: zeroHit,
+    engines: ENGINES, foundByEngine: count(candidates.flatMap(c => c.foundBy ?? ["pubmed"])), onlyOutsidePubmed: candidates.filter(c => c.foundBy && !c.foundBy.includes("pubmed")).length,
     candidates: candidates.length, alreadyInCorpus: candidates.length - fresh.length, newCandidates: fresh.length,
     pubmedDesigns: count(candidates.map(c => c.pubmedDesign)),
     jevCalls: answers.length, jevOk: ok.length, jevFailed: answers.length - ok.length,
