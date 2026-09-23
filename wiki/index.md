@@ -41,3 +41,4 @@ Third-party sources (PDFs, PRDs, threads) go in `raw/` (gitignored). File a
 `source-summary` page here when one is ingested. None yet.
 
 - [[concepts/evidence-validation]] — Jev agreement gate for article-backed MC evidence checks
+- [[concepts/research-intake]] — Jev-vetted PubMed article intake that grows the evidence base

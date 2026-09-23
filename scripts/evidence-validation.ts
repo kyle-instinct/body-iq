@@ -30,6 +30,8 @@ const CONCURRENCY = Number(arg("--concurrency") ?? 5);
 const OUT = arg("--out") ?? "exports/evidence-validation";
 const API_URL = process.env.TYPESAFE_API_URL ?? "https://api.typesafe.ai/v1/systemone";
 const PRICE_PER_MTOK = 0.042;
+// Cloudflare in front of Jev rejects default non-browser user agents (error 1010).
+const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
 type Source = {
   id: string; title: string; year: number | null; sourceType: string | null;
@@ -164,7 +166,7 @@ async function callJev(p: Packet, key: string): Promise<JevResult> {
   const started = Date.now();
   try {
     const res = await fetch(API_URL, {
-      method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json", "user-agent": UA },
       body: JSON.stringify({ state: state(p), model: "jev-latest", questions: QUESTIONS }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 220)}`);

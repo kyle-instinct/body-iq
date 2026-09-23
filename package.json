@@ -29,7 +29,8 @@
     "export:dataset": "tsx scripts/export-dataset.ts",
     "mcp": "tsx mcp/server.ts",
     "triage": "tsx scripts/review-triage.ts",
-    "evidence:validate": "tsx scripts/evidence-validation.ts"
+    "evidence:validate": "tsx scripts/evidence-validation.ts",
+    "research:intake": "tsx scripts/research-intake.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

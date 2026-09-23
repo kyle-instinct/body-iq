@@ -2,6 +2,16 @@
 
 Append-only. `grep "^## \[" wiki/log.md | tail -10` for recent activity.
 
+## [2026-09-22] change | Jev research-article intake + improvement menu
+Added `scripts/research-intake.ts` (`pnpm research:intake`): PubMed candidate
+search per rehab goal or exercise, verbatim abstract conclusions as summaries,
+Jev relevance/design/finding/review-probability vetting, and a strict proposal
+gate. First live pass: 108 calls, $0.005655, 0 proposed under the strict gate,
+18-article shortlist across 10 rehab goals. Exercise-name search proved weak (23
+of 40 zero-hit). Jev calls now send a browser User-Agent (Cloudflare 1010 fix).
+See [[concepts/research-intake]], docs/research-intake-jev-2026-09-22.md, and
+docs/jev-improvement-menu-2026-09-22.md.
+
 ## [2026-08-14] fix | FHIR links 404'd on the static demo — two causes
 (1) The Pages workflow deletes `src/app/api/**` before the export build, so
 `/api/exercises/<slug>/fhir` was never deployed. (2) `/exercises/[slug]` used a
