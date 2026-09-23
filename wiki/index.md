@@ -39,3 +39,5 @@ Institutional memory for **Body IQ**. Domain facts live in the database
 ## Sources
 Third-party sources (PDFs, PRDs, threads) go in `raw/` (gitignored). File a
 `source-summary` page here when one is ingested. None yet.
+
+- [[concepts/evidence-validation]] — Jev agreement gate for article-backed MC evidence checks
