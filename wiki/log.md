@@ -2,6 +2,18 @@
 
 Append-only. `grep "^## \[" wiki/log.md | tail -10` for recent activity.
 
+## [2026-09-22] change | Goal evidence attached, cross-source verification, Jev audits 3-5
+Kyle approved the 18-article intake shortlist and menu items 3-5. Added
+`scripts/source-crosscheck.ts` (PubMed, Europe PMC, OpenAlex, Crossref,
+Semantic Scholar; PEDro excluded by its fair-use terms): shortlist 18/18
+corroborated; corpus 280/305 corroborated, 19 conflicts including about 13
+stored identifiers that resolve to a different article. Added seed extension
+`goal-evidence` (18 sources, `needs_review`, linked via SourceOnEntity.goalId).
+Added `scripts/jev-audits.ts`: overclaim (153 exercises overstated by both
+checks, 81% agreement), freshness (14 refresh candidates), cue focus (60%
+agreement with stored labels, not applied). 1,450 Jev calls, $0.030481.
+See docs/jev-audits-2026-09-22.md.
+
 ## [2026-09-22] change | Goal <-> Source link
 Added nullable `SourceOnEntity.goalId` (FK to Goal, cascade delete, indexed)
 and `Goal.sources`, so condition-level research articles can attach to goals

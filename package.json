@@ -30,7 +30,9 @@
     "mcp": "tsx mcp/server.ts",
     "triage": "tsx scripts/review-triage.ts",
     "evidence:validate": "tsx scripts/evidence-validation.ts",
-    "research:intake": "tsx scripts/research-intake.ts"
+    "research:intake": "tsx scripts/research-intake.ts",
+    "jev:audit": "tsx scripts/jev-audits.ts",
+    "sources:crosscheck": "tsx scripts/source-crosscheck.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

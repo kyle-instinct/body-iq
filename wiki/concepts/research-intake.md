@@ -43,3 +43,5 @@ Framing: evidence curation for educational content. It never produces or
 validates a diagnosis or a treatment recommendation.
 
 First live pass: [[../../docs/research-intake-jev-2026-09-22]].
+
+**Cross-source check.** Before integration, run `pnpm sources:crosscheck -- --from exports/research-intake/shortlist.json`. Only `corroborated` articles (found in 3+ of PubMed, Europe PMC, OpenAlex, Crossref, Semantic Scholar, with matching DOI, title, and year, and no retraction) are eligible. The `goal-evidence` seed extension enforces this.

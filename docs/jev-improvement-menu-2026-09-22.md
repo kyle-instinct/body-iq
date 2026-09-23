@@ -20,9 +20,9 @@ records need it and check the result.
 |---|---|---|---|---|---|---|
 | 1 | Evidence agreement gate | Built, live | supported / thin / unsupported / conflicting + review p | 318 packets | $0.010 (measured) | human-review.json, review queue |
 | 2 | Research-article intake | Built, live pilot | relevance, design, finding, review p per PubMed candidate | 13 rehab goals; extend to 24 other goals | $0.003 per 13 goals (measured); about $0.009 for all 37 | proposed-citations.md -> ingest:citations -> resolve-sources -> score |
-| 3 | Evidence-level overclaim check | Proposed | Does stored `evidenceLevel` match linked evidence? (matches / overstated / understated) | 234 exercises marked moderate or strong; 188 exercises have no linked source | about $0.01 | confidence rubric, score EVIDENCE validator, triage |
-| 4 | Citation freshness | Proposed | For each older source, is a newer SR/guideline on the same topic consistent / superseding / unrelated? | 121 of 309 sources are pre-2016 | about $0.03 (5 PubMed candidates each) | resolve-sources, intake shortlist |
-| 5 | Cue focus labeling | Proposed | internal / external / tactile / imagery / instruction per cue, checked against the regex audit | 505 of 1,097 cues have no focus label | about $0.014 | cue:audit, cue-rewrite prompts |
+| 3 | Evidence-level overclaim check | Run 2026-09-22 ($0.0078; 153 overstated by both) | Does stored `evidenceLevel` match linked evidence? (matches / overstated / understated) | 234 exercises marked moderate or strong; 188 exercises have no linked source | about $0.01 | confidence rubric, score EVIDENCE validator, triage |
+| 4 | Citation freshness | Run 2026-09-22 ($0.0019; 14 refresh candidates) | For each older source, is a newer SR/guideline on the same topic consistent / superseding / unrelated? | 121 of 309 sources are pre-2016 | about $0.03 (5 PubMed candidates each) | resolve-sources, intake shortlist |
+| 5 | Cue focus labeling | Run 2026-09-22 ($0.0208; 60% vs stored, not applied) | internal / external / tactile / imagery / instruction per cue, checked against the regex audit | 505 of 1,097 cues have no focus label | about $0.014 | cue:audit, cue-rewrite prompts |
 | 6 | Muscle-role coherence | Proposed | primary / secondary / stabilizer / not-involved vs stored role | 2,024 exercise-muscle rows | about $0.034 | score COHERENCE validator, apply-verified-muscles |
 | 7 | Difficulty calibration | Proposed | beginner / intermediate / advanced vs stored, plus whether each progression edge is harder and each regression easier | 305 exercises, 1,034 edges | about $0.02 | progression graph, planner |
 | 8 | Exercise-goal relevance and caution flags | Proposed | essential / supportive / weak link, and noul "needs an educational caution note" | 605 links, 66 with caution text | about $0.01 | goal pages; a human writes any caution wording |
@@ -49,3 +49,5 @@ records need it and check the result.
    exercises have no sources but most carry a moderate or strong label.
 3. Citation freshness (4) and cue labeling (5).
 4. Coherence, difficulty, and goal-link checks (6-8) once 1-3 have shrunk the queue.
+
+Results for 3-5 and cross-source verification: docs/jev-audits-2026-09-22.md.
