@@ -34,9 +34,10 @@ it has a PMID, it is new to the corpus, and review probability < 0.35.
 probability, ordered for the curator. Proposals and shortlist entries still
 need a human; nothing is written to the database.
 
-**Goal-level limitation.** `SourceOnEntity` has no Goal FK, so condition-level
-articles cannot be linked to a goal directly. They are listed separately for a
-human to attach to the goal's linked exercises, or for a schema change.
+**Goal-level links.** Condition-level articles attach to a goal through
+`SourceOnEntity` with `entityType: "Goal"` and `goalId` set (nullable FK added
+2026-09-22, see [[../decisions/2026-09-22-goal-source-link]]). They are still
+listed separately so a human approves each one before it is linked.
 
 Framing: evidence curation for educational content. It never produces or
 validates a diagnosis or a treatment recommendation.

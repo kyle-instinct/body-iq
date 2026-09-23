@@ -30,9 +30,8 @@
  * Nothing is applied. Proposals for exercises are written in the format
  * scripts/ingest-citations.ts parses; a human copies approved entries into
  * research/citations/ and runs `pnpm ingest:citations -- --apply`. Goal-level
- * proposals are listed separately: the schema has no Goal<->Source link yet,
- * so they need a human to attach them to the goal's linked exercises (or a
- * schema change). This is evidence curation for educational content, never a
+ * proposals are listed separately: once approved, a human attaches them with a
+ * SourceOnEntity row of entityType "Goal" and goalId set (added 2026-09-22). This is evidence curation for educational content, never a
  * diagnosis or a treatment recommendation.
  *
  * Usage:
@@ -326,7 +325,7 @@ async function main() {
   for (const kind of ["exercise", "rehab-goal"] as const) {
     const group = proposed.filter(r => r.targetKind === kind);
     if (!group.length) continue;
-    md.push(kind === "exercise" ? "## Exercise-level (ingest-citations compatible)" : "## Condition-level (rehab goals - no Goal<->Source link in schema; attach manually)", "");
+    md.push(kind === "exercise" ? "## Exercise-level (ingest-citations compatible)" : "## Condition-level (rehab goals - attach approved entries as SourceOnEntity entityType Goal)", "");
     for (const name of [...new Set(group.map(r => r.targetName))]) {
       md.push(`### ${name}`);
       for (const r of group.filter(r => r.targetName === name)) md.push(`- ${citationLine(r)}`, `  - ${r.title} [${r.pubmedDesign}; Jev finding: ${r.jev?.finding}]`, `  - Abstract conclusion: ${r.summary}`);

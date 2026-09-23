@@ -2,6 +2,12 @@
 
 Append-only. `grep "^## \[" wiki/log.md | tail -10` for recent activity.
 
+## [2026-09-22] change | Goal <-> Source link
+Added nullable `SourceOnEntity.goalId` (FK to Goal, cascade delete, indexed)
+and `Goal.sources`, so condition-level research articles can attach to goals
+with `entityType: "Goal"`. Additive only; `pnpm db:push` would apply it (not run). SQL in the ADR. See
+[[decisions/2026-09-22-goal-source-link]].
+
 ## [2026-09-22] change | Jev research-article intake + improvement menu
 Added `scripts/research-intake.ts` (`pnpm research:intake`): PubMed candidate
 search per rehab goal or exercise, verbatim abstract conclusions as summaries,
